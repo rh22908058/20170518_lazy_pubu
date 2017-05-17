@@ -3,7 +3,7 @@
 
 <head>
     <style></style>
-    <script src="https://code.jquery.com/jquery-latest.js"></script>
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
     <script>
         $(function() {
             /*函数写法不封装
@@ -58,8 +58,14 @@
             lazyImg.prototype.srcollProc = function() {
                 //这里必须取出类属性this.nodes而不可以在scroll的监听函数中直接使用，因为this发生了变化！
                 var $this = this.nodes
+                var timer
                 $(window).on('scroll', function() {
-                    lazyImg.prototype.loadImg($this)
+                    //延时响应
+                    clearTimeout(timer)
+                    timer = setTimeout(function() {
+                        lazyImg.prototype.loadImg($this)
+                    }, 100)
+
                 })
             }
             new lazyImg($('img'))
