@@ -1,0 +1,379 @@
+<!doctype html>
+<html>
+
+<head>
+    <style type="text/css">
+        body {
+            margin: 0;
+            padding: 0;
+            color: #666;
+            background: lightgreen;
+        }
+        /*子元素绝对定位后父容器失去高度造成定位不准，这里事先给父元素指定了高度*/
+        
+        div.container {
+            width: 100%;
+            height: 10px;
+            margin: 30px auto;
+            position: relative;
+        }
+        
+        div.elem {
+            width: 290px;
+            border: 2px solid #888;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 15px 8px;
+            box-shadow: 10px 10px 5px #333;
+            position: absolute;
+            background: #fff;
+        }
+        
+        div.elem h3 {
+            margin-top: 15px;
+            margin-bottom: 8px;
+            color: #666;
+            text-align: center;
+        }
+        
+        div.elem a {
+            display: block;
+        }
+        
+        div.model {
+            display: none;
+        }
+        
+        div.elem a img {
+            width: 100%;
+            border: 1px solid #aaa;
+            border-radius: 3px;
+            padding: 2px;
+        }
+        
+        div.elem p.source {
+            text-align: right;
+            padding-right: 15px;
+        }
+        
+        div.elem div.summary {
+            line-height: 25px;
+            padding: 8px;
+            font-size: 15px;
+        }
+        
+        div.elem p.cdateTime {
+            text-align: right;
+            padding-right: 8px;
+            font-size: 12px;
+        }
+        
+        .more {
+            width: 100%;
+            position: absolute;
+            left: center;
+            display: block;
+            text-align: center;
+            font-size: 30px;
+            line-height: 40px;
+            z-index: 1000;
+        }
+    </style>
+
+
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script>
+        $(function() {
+            var pageSize = 30
+                //页码
+            var page = 1
+                //每个新闻的宽度,这里包括width padding border margin box-shadow
+            var new_width = 340
+
+            //瀑布流每列总高度数组
+            var arr = []
+                //横向排布的新闻数量
+            var num = parseInt($(window).width() / new_width)
+                //每个新闻块需要添加向右的位移，确保整体居中
+            var marginLeft = ($(window).width() - num * new_width) / 2
+                //console.log(num)
+                //初始化高度数组
+            for (i = 0; i < num; i++) {
+                arr.push(0)
+            }
+            //一批数据中的全部图片是否加载完毕
+            var loaded = false
+                //禁止加载数据
+            var stopLoad = false
+
+
+            //远程加载一批新闻
+            function getNews(pageSize, page) {
+                console.log(stopLoad)
+                if (!stopLoad) {
+                    //arr.length = num
+                    console.log(arr)
+                    console.log(num)
+                    $.ajax({
+                            url: "http://api.mafengshe.com/news?page=" + page + "&pageSize=" + pageSize,
+                            dataType: "json"
+                        }).done(function(data) {
+                            var list = data.result.data.list
+                            var len = data.result.data.count
+                            var i
+                                //记录这一批新闻数据中有图片的新闻个数
+                            var count = 0
+                                //记录已经加载完毕的图片个数
+                            var loadedcount = 0
+
+                            for (i = 0; i < len; i++) {
+                                //预先加载所有的图片
+                                if (list[i].allPics.pics.length > 0) {
+                                    count++
+                                    imgLoading(list[i].allPics.pics[0].imgurl)
+
+                                }
+                            }
+
+
+                            //将本批图片排布
+
+                            isImgLoaded(imgLoaded)
+
+
+
+
+                            //加载单张图片,加载完毕后loadedcount+1
+                            function imgLoading(url) {
+                                var img = new Image()
+                                img.onload = function() {
+                                    loadedcount++
+                                }
+                                img.src = url
+                            }
+
+                            //判断一批次30张图片是否全部加载完毕，如果完毕则调用回调函数将新闻块定位到计算好的位置
+                            var t_img
+
+                            function isImgLoaded(func) {
+                                // 加载完毕
+                                if (count == loadedcount) {
+                                    loaded = true
+                                    clearTimeout(t_img) // 清除定时器
+                                        // 回调函数
+                                    func()
+                                        // 没有加载完毕，因为找到了没有加载完成的图，将调用定时器递归
+                                } else {
+                                    t_img = setTimeout(function() {
+                                        isImgLoaded(func) // 递归扫描
+                                    }, 500)
+                                }
+                            }
+
+                            //所有图片加载完毕后，每个新闻块的高度都已经固定，计算其位置并插入文档
+                            function imgLoaded() {
+                                var list = data.result.data.list
+                                var len = data.result.data.count
+                                var i
+
+                                for (i = 0; i < len; i++) {
+                                    //复制模板DIV，并且取出隐藏样式
+                                    var tempDOM = $(".elem.model").clone().removeClass("model")
+                                        //设置h3
+                                    list[i].stitle && tempDOM.find("h3").text(list[i].stitle)
+                                        //设置图片URL
+                                    list[i].URL && tempDOM.find("a").attr("href", list[i].URL)
+                                        //设置图片URL
+                                    list[i].allPics.pics.length > 0 && tempDOM.find("img").attr("src", list[i].allPics.pics[0].imgurl)
+                                        //如果没有图片，隐藏图片区块
+                                    if (list[i].allPics.pics.length == 0) {
+                                        tempDOM.find("a").css({
+                                            display: 'none'
+                                        })
+                                    }
+                                    //设置来源
+                                    list[i].source && tempDOM.find(".source").text("来源：" + list[i].source)
+                                        //设置摘要
+                                    list[i].summary && tempDOM.find(".summary").text("摘要：" + list[i].summary)
+                                        //设置时间
+                                    list[i].cdateTime && tempDOM.find(".cdateTime").text("时间：" + list[i].cdateTime)
+
+
+                                    //添加一个新闻块到容器中
+                                    tempDOM.appendTo(".container")
+
+                                    //必须将元素插入文档中以后，元素才有高度，否则高度一直为0
+                                    var tempHeight = tempDOM.outerHeight(true)
+
+                                    //console.log(temp)
+                                    //计算应该插入的位置
+                                    var index = computeMinHeight(arr, num)
+
+                                    //定位当前节点
+                                    tempDOM.css({
+                                            left: index * new_width + marginLeft + 'px',
+                                            top: arr[index] + 'px'
+                                        })
+                                        //更新高度数组
+                                    arr[index] += tempHeight
+                                }
+                                $('.more').remove()
+                                console.log('scroll ' + num + ' ' + arr.length)
+                                console.log(arr)
+                                console.log(num)
+                            }
+
+                        }) //end done
+                }
+            }
+
+
+
+            //瀑布流算法,num是浏览器横向排列的新闻数量
+            function computeMinHeight(arr, num) {
+                var min = 0
+                for (var i = 1; i < num; i++) {
+                    if (arr[i] < arr[min]) {
+                        min = i
+                    }
+                }
+                return min
+            }
+
+            //每行区块数量发生改变时重新布局现有区块
+            function reLayout(arr, num) {
+
+                //初始化
+                arr.splice(0, arr.length);
+                //arr = [],这种初始化方式是不行的！！这样在其他函数中在使用arr时，已经不是原本的数组了
+                for (var i = 0; i < num; i++) {
+                    arr.push(0)
+                }
+
+                //刷新每个区块的向右偏移
+                marginLeft = ($(window).width() - num * new_width) / 2
+
+                $('.elem').not('.model').each(function() {
+                    var that = $(this)
+                    var tempHeight = that.outerHeight(true)
+                    var pos = computeMinHeight(arr, num)
+
+                    that.animate({
+                        left: pos * new_width + marginLeft + 'px',
+                        top: arr[pos] + 'px'
+                    }, 'normal')
+
+                    arr[pos] += tempHeight
+                })
+                setTimeout(function() {
+                    stopLoad = false
+                    console.log('resize ' + num + ' ' + arr.length)
+                    console.log(arr)
+                    console.log(num)
+                }, 500)
+
+            }
+
+            //绑定滚动事件，当滚动到底时，加载新一批新闻块
+            $(window).on('scroll', function() {
+                console.log('scroll')
+                    //console.log($(document).scrollTop())
+                    //如果当前批次新闻块全部加载完毕且滚动到当前文档最底部
+                if (loaded) {
+                    //console.log($(document).height() + ' ' + $(window).height())
+
+                    //滚动到了当前文档的最底部
+                    if (($(document).scrollTop() + $(window).height()) == $(document).height()) {
+
+                        $("<p>加载更多......</p>").addClass('more').appendTo('.container').css({
+                            top: ($(document).height() - 40) + 'px'
+                        })
+
+                        //alert($(".container").find('.more').length)
+
+                        loaded = false
+                        console.log($(document).height() - 40)
+                            //加载下一页内容
+                        page++
+                        getNews(pageSize, page)
+                    }
+                }
+            })
+
+            //绑定resize事件，重新布局
+            $(window).on('resize', function() {
+                //resize事件当中禁止加载数据，防止resize触发scroll的情况
+                $(window).scrollTop(0)
+                stopLoad = true
+                console.log('resize')
+                    //isScroll = false
+                var windowWidth = $(window).width()
+                var currentNum = parseInt(windowWidth / new_width)
+                if (currentNum != num) {
+                    num = currentNum
+
+                    reLayout(arr, num)
+                }
+            })
+
+            //初次加载第一页
+            $("<p>加载更多......</p>").addClass('more').appendTo('.container').css({
+                top: '50%'
+            })
+            getNews(pageSize, page)
+        })
+
+        /*
+        {
+
+          "stitle": "罗马赛彭帅三盘不敌金花杀手",
+          "URL": "https://sports.sina.cn/tennis/china/2017-05-15/detail-ifyfeius7969930.d.html",       
+          "cdateTime": "2017-05-15 23:33:56",
+        
+          "allPics": {
+            "total": 1,
+            "pics": [
+              {
+                "note": "",
+                "imgurl": "http://k.sinaimg.cn/n/sports/transform/20170515/IXmt-fyfeutq0312289.jpg/w120h90l50t1f31.jpg"
+              }
+            ]
+          },
+          "source": "新浪体育",
+          "summary": "布拉格赛冠军巴瑟尔已对中国选手豪取8连胜，总9胜1负",         
+        }
+        */
+    </script>
+
+</head>
+
+<body>
+    <!--
+    <div class="container">
+        <div class="elem model">
+            <h3>罗马赛彭帅三盘不敌金花杀手</h3>
+            <a href="https://sports.sina.cn/tennis/china/2017-05-15/detail-ifyfeius7969930.d.html">
+                <img src="http://k.sinaimg.cn/n/sports/transform/20170515/IXmt-fyfeutq0312289.jpg/w120h90l50t1f31.jpg" />
+            </a>
+            <p class="source">源自：新浪体育</p>
+            <div class="summary">摘要：布拉格赛冠军巴瑟尔已对中国选手豪取8连胜，总9胜1负</div>
+            <p class="cdateTime">时间：2017-05-15 23:33:56</p>
+        </div>
+    </div>
+    -->
+    <div class="container">
+        <div class="elem model">
+            <h3></h3>
+            <a>
+                <img/>
+            </a>
+            <p class="source"></p>
+            <div class="summary"></div>
+            <p class="cdateTime"></p>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

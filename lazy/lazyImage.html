@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+
+<head>
+    <style></style>
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script>
+        $(function() {
+            /*函数写法不封装
+            var nodes = $('img')
+
+            var lazyImg = function(nodes) {
+                if (nodes instanceof jQuery) {
+                    
+                    var $window = $(window)
+                    //遍历尚未加载的图片，已经加载的用not剔除
+                    nodes.not('.loaded').each(function() {
+                        var $this = $(this)
+                        //滚动到图片位置时用真实src替换空白图片的src
+                        if ($window.height() + $window.scrollTop() >= $this.offset().top) {
+                            $this.attr('src', $this.data('truesrc')).addClass('loaded')
+                        }
+                    })
+                }
+            }
+
+            $(window).on('scroll', function() {
+                lazyImg.call(this, nodes)
+            })
+            lazyImg(nodes)
+            */
+            //封装类
+            function lazyImg(nodes) {
+                this.nodes = nodes
+                this.srcollProc()
+                this.loadImg(this.nodes)
+            }
+            //加载图片，这里必须接收参数
+            lazyImg.prototype.loadImg = function(nodes) {
+
+                if (nodes instanceof jQuery) {
+
+                    var $window = $(window)
+                        //var tempnodes = this.nodes
+                        //遍历尚未加载的图片，已经加载的用not剔除
+                    nodes.not('.loaded').each(function() {
+                        var $this = $(this)
+                            //滚动到图片位置时用真实src替换空白图片的src
+                        if ($window.height() + $window.scrollTop() >= $this.offset().top) {
+                            $this.attr('src', $this.data('truesrc')).addClass('loaded')
+                        }
+                    })
+
+                }
+            }
+
+            //监听滚动
+            lazyImg.prototype.srcollProc = function() {
+                //这里必须取出类属性this.nodes而不可以在scroll的监听函数中直接使用，因为this发生了变化！
+                var $this = this.nodes
+                $(window).on('scroll', function() {
+                    lazyImg.prototype.loadImg($this)
+                })
+            }
+            new lazyImg($('img'))
+
+        })
+    </script>
+</head>
+
+<body>
+    <div>
+        <img data-truesrc="http://img1.3lian.com/img2011/w1/102/16/d/1.jpg" src="null.png" />
+        <img data-truesrc="http://img1.3lian.com/img2011/w1/102/16/d/2.jpg" src="null.png" />
+        <img data-truesrc="http://img1.3lian.com/img2011/w1/102/16/d/3.jpg" src="null.png" />
+        <img data-truesrc="http://img1.3lian.com/img2011/w1/102/16/d/4.jpg" src="null.png" />
+        <img data-truesrc="http://img1.3lian.com/img2011/w1/102/16/d/5.jpg" src="null.png" />
+        <img data-truesrc="http://img1.3lian.com/img2011/w1/102/16/d/6.jpg" src="null.png" />
+        <img data-truesrc="http://img1.3lian.com/img2011/w1/102/16/d/7.jpg" src="null.png" />
+        <img data-truesrc="http://img1.3lian.com/img2011/w1/102/16/d/8.jpg" src="null.png" />
+        <img data-truesrc="http://img1.3lian.com/img2011/w1/102/16/d/9.jpg" src="null.png" />
+    </div>
+
+</body>
+
+</html>
